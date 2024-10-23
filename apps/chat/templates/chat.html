@@ -1,4 +1,4 @@
-<h2>Room: {{ room_name }}</h2>
+<h2>Room: {{ room.name }}</h2>
 <div id="chat-log">
     {% for message in messages %}
         <div><b>{{ message.user }}:</b> {{ message.content }}</div> 
@@ -8,38 +8,59 @@
 <button id="chat-message-submit">Send</button>
 
 <script>
-    const roomId = "{{ room_id }}";
+    const roomId = "{{ room.pk }}";
+    const token = localStorage.getItem('Token');  // Получаем токен из localStorage
     const chatSocket = new WebSocket(
-        'ws://' + window.location.host + '/ws/chat/' + roomId + '/'
+        'ws://' + window.location.host + `/ws/chat/?token=${token}`
     );
 
+    // Подписка на сообщения в комнате
+    chatSocket.onopen = function() {
+        const subscribeMessage = JSON.stringify({
+            "action": "subscribe_to_message_in_room",  // Вызов действия подписки
+            "pk": roomId,
+            "request_id": new Date().getTime()
+        });
+        chatSocket.send(subscribeMessage);
+    };
+
+    // Обработка входящих сообщений
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
-        const message = data.message;
-        const user = data.user;
+        if (data.action === "create_message") {  // Проверяем, это ли событие создания сообщения
+            const message = data.data.content;
+            const user = data.data.user.username;
 
-        document.querySelector('#chat-log').innerHTML += '<div><b>' + user + ':</b> ' + message + '</div>';
-        const chatLog = document.querySelector('#chat-log');
-        chatLog.scrollTop = chatLog.scrollHeight;
+            // Отображаем сообщение на странице
+            document.querySelector('#chat-log').innerHTML += `<div><b>${user}:</b> ${message}</div>`;
+            const chatLog = document.querySelector('#chat-log');
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
     };
 
     chatSocket.onclose = function(e) {
         console.error('Chat socket closed unexpectedly');
     };
 
-    document.querySelector('#chat-message-input').focus();
+    // Отправка сообщения при нажатии Enter
     document.querySelector('#chat-message-input').onkeyup = function(e) {
         if (e.keyCode === 13) {
             document.querySelector('#chat-message-submit').click();
         }
     };
 
+    // Обработка отправки сообщения
     document.querySelector('#chat-message-submit').onclick = function(e) {
         const messageInputDom = document.querySelector('#chat-message-input');
         const message = messageInputDom.value;
-        chatSocket.send(JSON.stringify({
-            'message': message
-        }));
+        
+        const createMessage = JSON.stringify({
+            "action": "create_message",  // Вызов действия создания сообщения
+            "message": message,
+            "request_id": new Date().getTime()
+        });
+        
+        chatSocket.send(createMessage);  // Отправляем сообщение через WebSocket
         messageInputDom.value = '';
     };
 </script>
