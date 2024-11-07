@@ -16,3 +16,19 @@ def room(request, room_id):
     return render(request, 'chat.html', {'room': room, 'messages': room.messages.order_by('-timestamp')})
     # return render(request, 'chat.html', {'room_name': room.name, 'room_id': room.id, 'messages': messages})
 
+def login_view(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            # Успешная аутентификация, создаем токен
+            token = create_token(user.id)
+            messages.success(request, 'Вы успешно вошли в систему!')
+            # Возвращаем токен клиенту в качестве JSON-ответа
+            return JsonResponse(token)
+        else:
+            messages.error(request, 'Неверное имя пользователя или пароль.')
+
+    return render(request, 'chat/login.html')
