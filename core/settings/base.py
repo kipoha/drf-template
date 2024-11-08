@@ -34,11 +34,39 @@ else: from .dev import ALLOWED_HOSTS, DATABASES
 
 ALLOWED_HOSTS = ALLOWED_HOSTS
 
+AUTH_USER_MODEL = 'users.User'
 
 # Application definition
 
+# MODULES_APPS = [
+#     'daphne',
+#     'jazzmin',
+#     'corsheaders',
+#     'rest_framework',
+#     'rest_framework_simplejwt',
+#     'channels',
+# ]
+
+
+# DEFAULT_APPS = [
+#     'django.contrib.admin',
+#     'django.contrib.auth',
+#     'django.contrib.contenttypes',
+#     'django.contrib.sessions',
+#     'django.contrib.messages',
+#     'django.contrib.staticfiles',
+# ]
+
+
+# APPS = [
+#     'apps.helloworld',
+#     'apps.chat',
+# ]
+
+
+# INSTALLED_APPS = MODULES_APPS + DEFAULT_APPS + APPS
+
 INSTALLED_APPS = [
-    #modules
     'daphne',
     'jazzmin',
     'corsheaders',
@@ -46,7 +74,6 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'channels',
 
-    # default
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -54,10 +81,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    #apps
     'apps.helloworld',
     'apps.chat',
+    'apps.common',
+    'apps.users',
 ]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -151,9 +180,9 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
-    # 'DEFAULT_RENDERER_CLASSES': (
-    #     'rest_framework.renderers.JSONRenderer',
-    # )
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+    ),
 }
 
 SIMPLE_JWT = {

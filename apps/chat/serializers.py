@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Room, Message, User
+from .models import Room, Message
+from apps.users.models import User
 
 class UserSerializer(serializers.ModelSerializer):
 

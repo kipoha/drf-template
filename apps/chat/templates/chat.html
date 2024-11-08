@@ -1,66 +1,96 @@
 <h2>Room: {{ room.name }}</h2>
 <div id="chat-log">
     {% for message in messages %}
-        <div><b>{{ message.user }}:</b> {{ message.content }}</div> 
+        <div><b>{{ message.user.username }}:</b> {{ message.content }}</div> 
     {% endfor %}
 </div>
 <input id="chat-message-input" type="text" size="100">
 <button id="chat-message-submit">Send</button>
 
 <script>
-    const roomId = "{{ room.pk }}";
-    const token = localStorage.getItem('Token');  // Получаем токен из localStorage
+    const request_id = new Date().getTime()
+    const roomId = "{{ room.pk }}"; 
+
     const chatSocket = new WebSocket(
-        'ws://' + window.location.host + `/ws/chat/?token=${token}`
+        (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + `/ws/chat/${roomId}/`
     );
 
-    // Подписка на сообщения в комнате
     chatSocket.onopen = function() {
+        console.log('WebSocket соединение установлено.');
+
+        const requestId = new Date().getTime();  
         const subscribeMessage = JSON.stringify({
-            "action": "subscribe_to_message_in_room",  // Вызов действия подписки
+            "action": "subscribe_to_message_in_room",
             "pk": roomId,
-            "request_id": new Date().getTime()
+            "request_id": requestId
         });
         chatSocket.send(subscribeMessage);
+
+        const joinRoomMessage = JSON.stringify({
+            "action": "join_room",
+            "pk": roomId,
+            "request_id": requestId
+        });
+        chatSocket.send(joinRoomMessage);
     };
 
-    // Обработка входящих сообщений
+    chatSocket.onerror = function(error) {
+        console.error('Ошибка WebSocket:', error);
+    };
+
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
-        if (data.action === "create_message") {  // Проверяем, это ли событие создания сообщения
+        if (data.action === "create_message") {
             const message = data.data.content;
             const user = data.data.user.username;
 
-            // Отображаем сообщение на странице
-            document.querySelector('#chat-log').innerHTML += `<div><b>${user}:</b> ${message}</div>`;
+            const messageDiv = document.createElement('div');
+            messageDiv.innerHTML = `<b>${user}:</b> ${message}`;
+            document.querySelector('#chat-log').appendChild(messageDiv);
+
             const chatLog = document.querySelector('#chat-log');
             chatLog.scrollTop = chatLog.scrollHeight;
         }
     };
 
     chatSocket.onclose = function(e) {
-        console.error('Chat socket closed unexpectedly');
+        console.error('WebSocket соединение закрыто:', e);
+
+        const requestId = new Date().getTime();
+        const leaveRoomMessage = JSON.stringify({
+            "action": "leave_room",
+            "pk": roomId,
+            "request_id": requestId  
+        });
+        chatSocket.send(leaveRoomMessage);
     };
 
-    // Отправка сообщения при нажатии Enter
     document.querySelector('#chat-message-input').onkeyup = function(e) {
         if (e.keyCode === 13) {
             document.querySelector('#chat-message-submit').click();
         }
     };
 
-    // Обработка отправки сообщения
     document.querySelector('#chat-message-submit').onclick = function(e) {
-        const messageInputDom = document.querySelector('#chat-message-input');
-        const message = messageInputDom.value;
-        
-        const createMessage = JSON.stringify({
-            "action": "create_message",  // Вызов действия создания сообщения
-            "message": message,
-            "request_id": new Date().getTime()
-        });
-        
-        chatSocket.send(createMessage);  // Отправляем сообщение через WebSocket
-        messageInputDom.value = '';
+        if (chatSocket.readyState === WebSocket.OPEN) {
+            const messageInputDom = document.querySelector('#chat-message-input');
+            const message = messageInputDom.value;
+
+            if (message.trim() !== '') {
+                const requestId = new Date().getTime();  
+
+                const createMessage = JSON.stringify({
+                    "action": "create_message",
+                    "message": message,
+                    "request_id": requestId
+                });
+
+                chatSocket.send(createMessage);
+                messageInputDom.value = '';
+            }
+        } else {
+            alert('Соединение с WebSocket не установлено. Пожалуйста, обновите страницу.');
+        }
     };
+
 </script>

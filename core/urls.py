@@ -29,6 +29,7 @@ urlpatterns = [
     # apps
     path('api/v1/hello/', include('apps.helloworld.urls')),
     path('api/v1/chat/', include('apps.chat.urls')),
+    path('auth/', include('apps.users.urls')),
 
     # modules
     # empty
