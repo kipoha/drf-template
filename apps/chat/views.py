@@ -24,7 +24,6 @@ def room(request, room_id):
 @login_required(login_url='/auth/login/')
 def select_room(request):
     rooms = Room.objects.all().order_by('-created_at')
-    
     if not rooms:
         messages.error(request, 'Нет доступных комнат.')
         return redirect('create_room')
