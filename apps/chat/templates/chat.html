@@ -1,33 +1,69 @@
-<h2>Room: {{ room_name }}</h2>
+<h2>Room: {{ room.name }}</h2>
 <div id="chat-log">
     {% for message in messages %}
-        <div><b>{{ message.user }}:</b> {{ message.content }}</div> 
+        <div><b>{{ message.user.username }}:</b> {{ message.content }}</div> 
     {% endfor %}
 </div>
 <input id="chat-message-input" type="text" size="100">
 <button id="chat-message-submit">Send</button>
 
 <script>
-    const roomId = "{{ room_id }}";
+    const request_id = new Date().getTime()
+    const roomId = "{{ room.pk }}"; 
+
     const chatSocket = new WebSocket(
-        'ws://' + window.location.host + '/ws/chat/' + roomId + '/'
+        (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + `/ws/chat/${roomId}/`
     );
+
+    chatSocket.onopen = function() {
+        console.log('WebSocket соединение установлено.');
+
+        const requestId = new Date().getTime();
+        const subscribeMessage = JSON.stringify({
+            "action": "subscribe_to_message_in_room",
+            "pk": String(roomId),
+            "request_id": requestId
+        });
+        chatSocket.send(subscribeMessage);
+
+        const joinRoomMessage = JSON.stringify({
+            "action": "join_room",
+            "pk": String(roomId),
+            "request_id": requestId
+        });
+        chatSocket.send(joinRoomMessage);
+    };
+
+    chatSocket.onerror = function(error) {
+        console.error('Ошибка WebSocket:', error);
+    };
 
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
-        const message = data.message;
-        const user = data.user;
+        if (data.message && data.user) {
+            const userDisplayName = data.user
 
-        document.querySelector('#chat-log').innerHTML += '<div><b>' + user + ':</b> ' + message + '</div>';
-        const chatLog = document.querySelector('#chat-log');
-        chatLog.scrollTop = chatLog.scrollHeight;
+            const messageDiv = document.createElement('div');
+            messageDiv.innerHTML = `<b>${userDisplayName}:</b> ${data.message}`;
+            document.querySelector('#chat-log').appendChild(messageDiv);
+
+            const chatLog = document.querySelector('#chat-log');
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
     };
 
     chatSocket.onclose = function(e) {
-        console.error('Chat socket closed unexpectedly');
+        console.error('WebSocket соединение закрыто:', e);
+
+        const requestId = new Date().getTime();
+        const leaveRoomMessage = JSON.stringify({
+            "action": "leave_room",
+            "pk": String(roomId),
+            "request_id": requestId  
+        });
+        chatSocket.send(leaveRoomMessage);
     };
 
-    document.querySelector('#chat-message-input').focus();
     document.querySelector('#chat-message-input').onkeyup = function(e) {
         if (e.keyCode === 13) {
             document.querySelector('#chat-message-submit').click();
@@ -35,11 +71,25 @@
     };
 
     document.querySelector('#chat-message-submit').onclick = function(e) {
-        const messageInputDom = document.querySelector('#chat-message-input');
-        const message = messageInputDom.value;
-        chatSocket.send(JSON.stringify({
-            'message': message
-        }));
-        messageInputDom.value = '';
+        if (chatSocket.readyState === WebSocket.OPEN) {
+            const messageInputDom = document.querySelector('#chat-message-input');
+            const message = messageInputDom.value;
+
+            if (message.trim() !== '') {
+                const requestId = new Date().getTime();  
+
+                const createMessage = JSON.stringify({
+                    "action": "create_message",
+                    "message": message,
+                    "request_id": requestId
+                });
+
+                chatSocket.send(createMessage);
+                messageInputDom.value = '';
+            }
+        } else {
+            alert('Соединение с WebSocket не установлено. Пожалуйста, обновите страницу.');
+        }
     };
+
 </script>
