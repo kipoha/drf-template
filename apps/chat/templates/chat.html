@@ -18,17 +18,17 @@
     chatSocket.onopen = function() {
         console.log('WebSocket соединение установлено.');
 
-        const requestId = new Date().getTime();  
+        const requestId = new Date().getTime();
         const subscribeMessage = JSON.stringify({
             "action": "subscribe_to_message_in_room",
-            "pk": roomId,
+            "pk": String(roomId),
             "request_id": requestId
         });
         chatSocket.send(subscribeMessage);
 
         const joinRoomMessage = JSON.stringify({
             "action": "join_room",
-            "pk": roomId,
+            "pk": String(roomId),
             "request_id": requestId
         });
         chatSocket.send(joinRoomMessage);
@@ -40,12 +40,11 @@
 
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
-        if (data.action === "create_message") {
-            const message = data.data.content;
-            const user = data.data.user.username;
+        if (data.message && data.user) {
+            const userDisplayName = data.user
 
             const messageDiv = document.createElement('div');
-            messageDiv.innerHTML = `<b>${user}:</b> ${message}`;
+            messageDiv.innerHTML = `<b>${userDisplayName}:</b> ${data.message}`;
             document.querySelector('#chat-log').appendChild(messageDiv);
 
             const chatLog = document.querySelector('#chat-log');
@@ -59,7 +58,7 @@
         const requestId = new Date().getTime();
         const leaveRoomMessage = JSON.stringify({
             "action": "leave_room",
-            "pk": roomId,
+            "pk": String(roomId),
             "request_id": requestId  
         });
         chatSocket.send(leaveRoomMessage);

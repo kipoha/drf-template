@@ -80,7 +80,7 @@ class ChatAPIConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
     async def disconnect(self, code):
         if hasattr(self, 'room_subscribe'):
-            await self.room_subscribe.remove(self.room_subscribe)
+            await self.remove_user_from_room(self.room_subscribe)
             await self.notify_users()
 
         await self.channel_layer.group_discard(
@@ -164,7 +164,7 @@ class ChatAPIConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
     @database_sync_to_async
     def remove_user_from_room(self, room):
         user: User = self.scope["user"]
-        user.rooms.remove(room)
+        room.current_users.remove(user)
 
     @database_sync_to_async
     def add_user_to_room(self, room):
