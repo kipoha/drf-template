@@ -8,11 +8,24 @@
 <button id="chat-message-submit">Send</button>
 
 <script>
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    const access_token = getCookie('access_token');
+    if (access_token) {
+        console.log('Access token:', access_token);
+    } else {
+        console.warn('Access token не найден');
+    }
+
     const request_id = new Date().getTime()
     const roomId = "{{ room.pk }}"; 
 
     const chatSocket = new WebSocket(
-        (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + `/ws/chat/${roomId}/`
+        (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + `/ws/chat/${roomId}/?token=${access_token}`
     );
 
     chatSocket.onopen = function() {
@@ -40,16 +53,22 @@
 
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
-        if (data.message && data.user) {
+        if (data.action === "create_message" && data.message) {
             const userDisplayName = data.user
-
             const messageDiv = document.createElement('div');
             messageDiv.innerHTML = `<b>${userDisplayName}:</b> ${data.message}`;
             document.querySelector('#chat-log').appendChild(messageDiv);
 
-            const chatLog = document.querySelector('#chat-log');
-            chatLog.scrollTop = chatLog.scrollHeight;
+        } else if (data.action === 'user_joined') {
+            console.log(`${data.user} joined the room`);
+        } else if (data.action === 'user_left') {
+            console.log(`${data.user} left the room`);
+        } else if (data.action === 'user_list_update') {
+            console.log('User list updated:', data.usuarios);
         }
+
+        const chatLog = document.querySelector('#chat-log');
+        chatLog.scrollTop = chatLog.scrollHeight;
     };
 
     chatSocket.onclose = function(e) {

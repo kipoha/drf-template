@@ -1,3 +1,4 @@
+# 
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from .forms import RegisterForm, LoginForm
@@ -27,9 +28,13 @@ def login_view(request: HttpRequest):
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
 
+        # Добавляем токены в заголовки ответа
         response = redirect('/api/v1/chat/select-room/')
         response.set_cookie('access_token', access_token)
         response.set_cookie('refresh_token', refresh_token)
+
+        # Добавление токена в заголовок ответа
+        response['Authorization'] = f'Bearer {access_token}'
 
         messages.success(request, 'Вы успешно вошли в систему!')
         return response
@@ -53,9 +58,13 @@ def register_view(request):
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
 
+        # Добавляем токены в заголовки ответа
         response = redirect('/api/v1/chat/select-room/')
         response.set_cookie('access_token', access_token)
         response.set_cookie('refresh_token', refresh_token)
+
+        # Добавление токена в заголовок ответа
+        response['Authorization'] = f'Bearer {access_token}'
 
         messages.success(request, 'Регистрация прошла успешно. Войдите в систему.')
         return response
