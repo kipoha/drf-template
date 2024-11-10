@@ -36,9 +36,6 @@ class ChatAPIConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
         await super().disconnect(code)
 
-    async def receive(self, text_data=None, bytes_data=None, **kwargs):
-        await super().receive(text_data, bytes_data, **kwargs)
-
     async def notify_users(self):
         room: Room = self.room_subscribe
         for group in self.groups:
